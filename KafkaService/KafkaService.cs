@@ -6,6 +6,13 @@ namespace Services
 {
     public class KafkaService : IKafkaService
     {
+        private readonly CustomDelegates.LoggingKafkaServiceMessages _dbDelegate;
+
+        public KafkaService(CustomDelegates.LoggingKafkaServiceMessages dbDelegate)
+        {
+            _dbDelegate = dbDelegate;
+        }
+
         public async Task<List<ProducerKafka>> ProduceMessages()
         {
             var config = new ProducerConfig
@@ -42,6 +49,44 @@ namespace Services
             }
 
             return results;
+        }
+
+        public async Task ConsumeMessages(KafkaConfig consumerConfig, string topic, string consumerName)
+        {
+            var config = new ConsumerConfig
+            {
+                BootstrapServers = consumerConfig.BootstrapServers,
+                GroupId = consumerName
+            };
+
+            using (var consumer = new ConsumerBuilder<Ignore, string>(config).Build())
+            {
+                consumer.Subscribe(topic);
+
+                var cancellationTokenSource = new CancellationTokenSource();
+
+                while (true)
+                {
+                    var consumeResult = consumer.Consume(cancellationTokenSource.Token);
+
+                    if (consumeResult != null && !string.IsNullOrEmpty(consumeResult.Message.Value))
+                    {
+                        string[] messages = consumeResult.Message.Value.Split(' ');
+                        ConsumerKafka consumedMessage = new ConsumerKafka();
+                        consumedMessage.Id = Guid.Parse(messages[3]);
+                        consumedMessage.Message = consumeResult.Message.Value;
+                        consumedMessage.Topic = consumeResult.Topic;
+                        consumedMessage.Partition = consumeResult.Partition;
+                        consumedMessage.ConsumerName = consumerName;
+
+                        await _dbDelegate.Invoke(consumedMessage , "Data Source=VID-DT-1051;Database=SoftechWorldWide;Integrated Security=True;Connect Timeout=30;Encrypt=True;Trust Server Certificate=True;Application Intent=ReadWrite;Multi Subnet Failover=False");
+
+                        Console.WriteLine($"Consumed message '{consumeResult.Message.Value}' at: '{consumeResult.TopicPartitionOffset}'.");
+
+                    }
+                }
+
+            }
         }
 
     }

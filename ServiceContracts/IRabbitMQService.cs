@@ -10,5 +10,7 @@ namespace ServiceContracts
     public interface IRabbitMQService
     {
         List<ProducerRabbitMQ> ProduceMessages();
+
+        Task ConsumeMessages(string Url, string queueName, string exchange , string consumerName);
     }
 }

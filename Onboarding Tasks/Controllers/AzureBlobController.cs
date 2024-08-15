@@ -2,6 +2,7 @@
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
 using Microsoft.AspNetCore.Mvc;
+using ServiceContracts;
 using System.Collections;
 using System.IO;
 using System.Net;
@@ -14,13 +15,16 @@ namespace Tasks.Controllers
     [ApiController]
     public class AzureBlobController : Controller
     {
-        APIResponse response;
+        private readonly IAzureFileUploadService _uploadService;
         private readonly IConfiguration _configuration;
+        APIResponse response;
 
-        public AzureBlobController(IConfiguration configuration)
+
+        public AzureBlobController(IConfiguration configuration , IAzureFileUploadService uploadService)
         {
-            this.response = new APIResponse();
+            _uploadService = uploadService;
             _configuration = configuration;
+            this.response = new APIResponse();
         }
 
         [HttpGet("UploadFile/{inputFilePath}/{chunkSize}")]
@@ -35,55 +39,12 @@ namespace Tasks.Controllers
                 return NotFound(response);
             }
 
-            string fileNameWithExtension = System.IO.Path.GetFileName(inputFilePath);
-
-            BlobServiceClient blobServiceClient = new BlobServiceClient(_configuration.GetConnectionString("AzureBlobConnection"));
-            BlobContainerClient containerClient =  blobServiceClient.GetBlobContainerClient(_configuration.GetConnectionString("BlobContainerName"));
-
-            string[] chunks = chunkSize.Split('*');
-            int size = 1;
-            for (int i = 0; i < chunks.Length; i++)
-            {
-                size *= Convert.ToInt32(chunks[i]);   
-            }
-
-            
-            BlockBlobClient blobClient = containerClient.GetBlockBlobClient(fileNameWithExtension);
-            await using FileStream uploadFileStream = System.IO.File.OpenRead(inputFilePath);
-
-            ArrayList blockIDArrayList = new ArrayList();
-            byte[] buffer;
-            var bytesLeft = uploadFileStream.Length - uploadFileStream.Position;
-
-            while (bytesLeft > 0)
-            {
-                if (bytesLeft >= size)
-                {
-                    buffer = new byte[size];
-                    await uploadFileStream.ReadAsync(buffer , 0 , size);
-                }
-
-                else
-                {
-                    buffer = new byte[bytesLeft];
-                    await uploadFileStream.ReadAsync(buffer , 0 , Convert.ToInt32(bytesLeft));
-                    bytesLeft = uploadFileStream.Length - uploadFileStream.Position;
-                }
-
-                using (var stream = new MemoryStream(buffer))
-                {
-                    string blockID = Convert.ToBase64String(Encoding.UTF8.GetBytes(Guid.NewGuid().ToString()));
-                    blockIDArrayList.Add(blockID);
-                    BlockInfo uploadedBlock = await blobClient.StageBlockAsync(blockID, stream);
-                    Console.WriteLine($"Block Uploade: \n\n{uploadedBlock}");
-                }
-
-                bytesLeft = uploadFileStream.Length - uploadFileStream.Position;
-            }
-
-            string[] blockIDArray = (string[])blockIDArrayList.ToArray(typeof(string));
-
-            await blobClient.CommitBlockListAsync(blockIDArray);
+            await _uploadService.FileUploadOnAzure(
+                    inputFilePath , 
+                    chunkSize , 
+                    _configuration.GetConnectionString("AzureBlobConnection") , 
+                    _configuration.GetConnectionString("BlobContainerName")
+                );
 
             response.Result = "File uploaded successfully";
             response.IsSuccess = true;

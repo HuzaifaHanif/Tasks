@@ -3,12 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-//using Vidizmo.Contract.MashupManagement;
 
-namespace AzureBusServiceConsumer1
+namespace Services
 {
-    //MashupSearchCriteria
-    public class AzureBus
+    public class ConsumerAzureBus
     {
         public Guid Guid { get; set; }
 

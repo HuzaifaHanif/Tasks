@@ -9,5 +9,7 @@ namespace ServiceContracts
     public interface IAzureBusService
     {
         public Task<List<ProducerAzureBus>> ProduceMessages(string connectionString , string topicName);
+
+        public Task ConsumeMessages(string connectionstring , string topic , string subscriberName);
     }
 }

@@ -21,9 +21,34 @@ namespace Tasks.Controllers
         }
 
         [HttpGet("Mashupinfo")]
-        public IActionResult GetData()
+        public IActionResult GetData([FromQuery] long? userId,
+                                    [FromQuery] long? mashupId,
+                                    [FromQuery] long? tenantId,
+                                    [FromQuery] DateTime? publishedDate,
+                                    [FromQuery] string? culture,
+                                    [FromQuery] string? title,
+                                    [FromQuery] string? description,
+                                    [FromQuery] string? tags,
+                                    [FromQuery] string? category,
+                                    [FromQuery] bool? isTranscoded,
+                                    [FromQuery] bool? isAIProcessed)
         {
-            var mashupsInfo =  DataHandler.GetMashupInfo(_config.GetConnectionString("DefaultConnectionVidizmo"));
+
+            var filterObj = new RequestMashupInfo
+            {
+                UserId = userId,
+                MashupId = mashupId,
+                TenantId = tenantId,
+                PublishedDate = publishedDate,
+                Culture = culture,
+                Title = title,
+                Description = description,
+                Tags = tags,
+                Category = category,
+                IsTranscoded = isTranscoded,
+                IsAIProcessed = isAIProcessed
+            };
+            var mashupsInfo =  DataHandler.GetMashupInfo(_config.GetConnectionString("DefaultConnectionVidizmo") , filterObj);
 
             if (mashupsInfo == null)
             {

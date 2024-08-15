@@ -21,8 +21,8 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="NEST" Version="7.17.4" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+    <PackageReference Include="VidizmoContract" Version="2.0.0-111114" />
   </ItemGroup>
 
   <ItemGroup>

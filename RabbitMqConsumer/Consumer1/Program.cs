@@ -1,63 +1,43 @@
-﻿// See https://aka.ms/new-console-template for more information
-using KafkaConsumer2;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using RabbitMQ.Client;
-using RabbitMQ.Client.Events;
+﻿ using Microsoft.Extensions.DependencyInjection;
 using ServiceContracts;
-using System.Text;
-using System.Text.Json.Serialization;
+using Services;
 
-static class Program
+public class Program
 {
-    static void Main(string[] args)
+    private readonly IRabbitMQService _rabbitMQService;
+
+    public Program(IRabbitMQService rabbitMQService)
     {
-        var factory = new ConnectionFactory
-        {
-            Uri = new Uri("amqp://user:password@localhost:5672")
-        };
+        _rabbitMQService = rabbitMQService;
+    }
 
-        using var connection = factory.CreateConnection();
-        using var channel = connection.CreateModel();
+    public static async Task Main(string[] args)
+    {
+        var serviceProvider = new ServiceCollection()
+            .AddSingleton<IRabbitMQService, RabbitMqService>()
+            .AddSingleton<Program>()
+            .AddSingleton<IRabbitMQServiceDatabase, RabbitMQServiceDatabase>()
+            .AddSingleton<CustomDelegates.LoggingRabbitMQServiceMessages>(provider =>
+            {
+                var dbService = provider.GetRequiredService<IRabbitMQServiceDatabase>();
+                return new CustomDelegates.LoggingRabbitMQServiceMessages(dbService.LogConsumerData);
+            })
+            .BuildServiceProvider();
 
-        channel.QueueDeclare(queue: "queue1",
-                 durable: true,
-                 exclusive: false,
-                 autoDelete: false,
-                 arguments: null);
-
-        //channel.QueueBind("queue2", "Huzaifa", "1037");
+        var program = serviceProvider.GetRequiredService<Program>();
 
         Console.WriteLine("\t\t\tRabbitMQConsumer 1\n\n Waiting For Meassges...\n\n");
+        await program.MessagesHandler();
+    }
 
-        RabbitMq recievedMessage = new RabbitMq();
+    public async Task MessagesHandler()
+    {
+        string url = "amqp://user:password@localhost:5672";
 
-        var consumer = new EventingBasicConsumer(channel);
-        consumer.Received += async (model, ea) =>
-        {
-            var body = ea.Body.ToArray();
-            var message = JObject.Parse(Encoding.UTF8.GetString(body));
+        string queueName = "queue1";
+        string exchange = "Huzaifa";
+        string consumerName = "consumer1";
 
-            recievedMessage.Guid = Guid.Parse(message["id"].ToString());
-            recievedMessage.Message = message["message"].ToString();
-            recievedMessage.Queue = "queue1";
-            recievedMessage.Exchange = ea.Exchange;
-            recievedMessage.ConsumerName = "consumer 1";
-
-            DatabaseSevice db = DatabaseSevice.GetInstance();
-            await db.LogDb(recievedMessage);
-
-            Console.WriteLine($"Received message: {message}");
-        };
-        channel.BasicConsume(queue: "queue1",
-                             autoAck: true,
-                             consumer: consumer);
-
-        Console.WriteLine(" Press [enter] to exit.");
-
-        Console.ReadLine();
-
+        await _rabbitMQService.ConsumeMessages(url , queueName , exchange , consumerName);
     }
 }
-
-//{"id":"81d573c4-9627-47d5-92a4-4c89cb0f127e","name":"Producer","message":"hello i am Huzaifa"}

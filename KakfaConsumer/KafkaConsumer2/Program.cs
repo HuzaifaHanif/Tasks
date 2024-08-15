@@ -1,56 +1,47 @@
-﻿// See https://aka.ms/new-console-template for more information
-
-using Confluent.Kafka;
-using KafkaConsumer1;
-using KafkaConsumer2;
+﻿
+using Microsoft.Extensions.DependencyInjection;
+using ServiceContracts;
+using Services;
 
 public class Program
 {
-    static async Task Main(string[] args)
+    private readonly IKafkaService _kafkaService;
+
+    public Program(IKafkaService kafkaService)
     {
+        _kafkaService = kafkaService;
+    }
+
+    public static async Task Main(string[] args)
+    {
+        var serviceProvider = new ServiceCollection()
+            .AddSingleton<IKafkaService, KafkaService>()
+            .AddSingleton<Program>()
+            .AddSingleton<IKafkaServiceDatabase, KafkaServiceDatabase>()
+            .AddSingleton<CustomDelegates.LoggingKafkaServiceMessages>(provider =>
+            {
+                var dbService = provider.GetRequiredService<IKafkaServiceDatabase>();
+                return new CustomDelegates.LoggingKafkaServiceMessages(dbService.LogConsumerData);
+            })
+            .BuildServiceProvider();
+
+        var program = serviceProvider.GetRequiredService<Program>();
+
         Console.WriteLine("\tKafka\t.............Consumer 2.........");
-        var config = new ConsumerConfig
+        await program.MessagesHandler();
+    }
+
+    public async Task MessagesHandler()
+    {
+        KafkaConfig config = new KafkaConfig()
         {
             BootstrapServers = "localhost:9092",
             GroupId = "huzaifa2",
-            AutoOffsetReset = AutoOffsetReset.Earliest
         };
 
-        using (var consumer = new ConsumerBuilder<Ignore, string>(config).Build())
-        {
-            consumer.Subscribe("KafkaPublisher");
+        string topic = "KafkaPublisher";
+        string consumerName = config.GroupId;
 
-            var cancellationTokenSource = new CancellationTokenSource();
-
-            while (true)
-            {
-                var consumeResult = consumer.Consume(cancellationTokenSource.Token);
-
-                if (consumeResult != null && !string.IsNullOrEmpty(consumeResult.Message.Value))
-                {
-                    string[] messages = consumeResult.Message.Value.Split(' ');
-
-                    Kafka consumedMessage = new Kafka();
-                    consumedMessage.Id = Guid.Parse(messages[3]);
-                    consumedMessage.Message = consumeResult.Message.Value;
-                    consumedMessage.Topic = consumeResult.Topic;
-                    consumedMessage.Partition = consumeResult.Partition;
-                    consumedMessage.ConsumerName = "Consumer2";
-
-                    DatabaseSevice db = DatabaseSevice.GetInstance();
-                    await db.LogDb(consumedMessage);
-                    Console.WriteLine($"Consumed message '{consumeResult.Message.Value}' at: '{consumeResult.TopicPartitionOffset}'.");
-                   
-                }
-            }
-
-            consumer.Close();
-        }
-
+        await _kafkaService.ConsumeMessages(config, topic, consumerName);
     }
 }
-
-
-//produced message to topic KafkaPublisher, partition [0]
-//Consumed message 'message from id 9364f2f2-fbc7-4651-828b-c47a782fc588' at: 'KafkaPublisher [[0]] @90'.
-//message from id 9364f2f2-fbc7-4651-828b-c47a782fc588
