@@ -1,12 +1,17 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using RabbitMQConsumer2;
+using RabbitMQConsumer2.Models;
 using ServiceContracts;
+using ServiceContracts.RabbitMQService;
 using Services;
+using Services.RabbitMQService;
 
 public class Program
 {
-    private readonly IRabbitMQService _rabbitMQService;
+    private readonly IRabbitMQConsumerService _rabbitMQService;
+    //private static RabbitMQServiceContext _dbContext;
 
-    public Program(IRabbitMQService rabbitMQService)
+    public Program(IRabbitMQConsumerService rabbitMQService)
     {
         _rabbitMQService = rabbitMQService;
     }
@@ -14,13 +19,14 @@ public class Program
     public static async Task Main(string[] args)
     {
         var serviceProvider = new ServiceCollection()
-            .AddSingleton<IRabbitMQService, RabbitMqService>()
+            .AddSingleton<IRabbitMQConsumerService, RabbitMQConsumerService>()
+            .AddDbContext<RabbitMQServiceContext>(ServiceLifetime.Scoped)
             .AddSingleton<Program>()
-            .AddSingleton<IRabbitMQServiceDatabase, RabbitMQServiceDatabase>()
-            .AddSingleton<CustomDelegates.LoggingRabbitMQServiceMessages>(provider =>
+            .AddScoped<Repository>()
+            .AddTransient<CustomDelegates.LoggingRabbitMQServiceMessages>(provider =>
             {
-                var dbService = provider.GetRequiredService<IRabbitMQServiceDatabase>();
-                return new CustomDelegates.LoggingRabbitMQServiceMessages(dbService.LogConsumerData);
+                var repository = provider.GetService<Repository>();
+                return new CustomDelegates.LoggingRabbitMQServiceMessages(repository.AddMessageToDB);
             })
             .BuildServiceProvider();
 
@@ -40,4 +46,18 @@ public class Program
 
         await _rabbitMQService.ConsumeMessages(url, queueName, exchange, consumerName);
     }
+
+    //public static async Task AddMessageToDB(ConsumerRabbitMq consumedMessage)
+    //{
+    //    await _dbContext.RabbitMqs.AddAsync(new RabbitMq
+    //    {
+    //        Guid = consumedMessage.Guid,
+    //        Queue = consumedMessage.Queue,
+    //        Message = consumedMessage.Message,
+    //        Exchange = consumedMessage.Exchange,
+    //        ConsumerName = consumedMessage.ConsumerName,
+    //    });
+
+    //    await _dbContext.SaveChangesAsync();
+    //}
 }

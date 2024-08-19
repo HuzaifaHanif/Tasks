@@ -1,33 +1,34 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using ServiceContracts;
+﻿using AzureBusServiceConsumer1.Models;
+using Microsoft.Extensions.DependencyInjection;
+using ServiceContracts.AzureBusService;
 using Services;
+using Services.AzureBusService;
 
 public class Program
 {
-    private readonly IAzureBusService _azureBusService;
+    private readonly IAzureBusConsumerService _azureBusService;
+    private static AzureBusServiceContext _dbcontext;
 
-    public Program(IAzureBusService azureBusService)
+    public Program(IAzureBusConsumerService azureBusService , AzureBusServiceContext dbcontext)
     {
         _azureBusService = azureBusService;
+        _dbcontext = dbcontext;
     }
 
     public static async Task Main(string[] args)
     {
         var serviceProvider = new ServiceCollection()
-            .AddSingleton<IAzureBusService, AzureBusService>() 
-            .AddSingleton<Program>() 
-            .AddSingleton<IAzureBusServiceDatabase , AzureBusServiceDatabase>()
-            .AddSingleton<CustomDelegates.LoggingAzueBusServiceMessages>(provider =>
+            .AddSingleton<IAzureBusConsumerService, AzureBusConsumerService>() 
+            .AddSingleton<AzureBusServiceContext>()
+            .AddSingleton<Program>()
+            .AddSingleton<CustomDelegates.LoggingAzureBusServiceMessages>(provider =>
             {
-                var dbService = provider.GetRequiredService<IAzureBusServiceDatabase>();
-                return new CustomDelegates.LoggingAzueBusServiceMessages(dbService.LogConsumerData);
+                return new CustomDelegates.LoggingAzureBusServiceMessages(AddMessageToDB);
             })
             .BuildServiceProvider();
 
-        //var databaseService = serviceProvider.GetRequiredService<IAzureBusServiceDatabase>();
-        //var logDelegate = new CustomDelegates.LoggingMessagesToDB(databaseService.LogConsumerData);
-        var program = serviceProvider.GetRequiredService<Program>();
 
+        var program = serviceProvider.GetRequiredService<Program>();
         Console.WriteLine("\tAzure Bus Service\t.............Consumer 1.........");
         await program.MessagesHandler();
     }
@@ -39,5 +40,19 @@ public class Program
             "onboardingtask",
             "subscriber1"
         );
+
+    }
+
+    public static async Task AddMessageToDB(ConsumerAzureBus consumedMessage)
+    {
+        await _dbcontext.AzureBusService.AddAsync(new AzureBus
+        {
+            Guid = consumedMessage.Guid,
+            Topic = consumedMessage.Topic,
+            Message = consumedMessage.Message,
+            ConsumerName = consumedMessage.ConsumerName
+        });
+
+        await _dbcontext.SaveChangesAsync();
     }
 }

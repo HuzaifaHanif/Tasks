@@ -4,36 +4,25 @@ using Task8.Repository;
 using Task8.Repository.IRepository;
 using ServiceContracts;
 using Services;
+using Services.AzureBusService;
+using ServiceContracts.AzureBusService;
+using ServiceContracts.KafkaService;
+using Services.KafkaService;
+using Services.RabbitMQService;
+using ServiceContracts.RabbitMQService;
+
+
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<SoftechWorldWideContext>(
     options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
 );
 builder.Services.AddScoped<IEmployeeRepository , EmployeeRepository>();
-builder.Services.AddScoped<IKafkaService, KafkaService>();
-builder.Services.AddScoped<IKafkaRepository , KafkaRepository>();
-builder.Services.AddScoped<IRabbitMQService, RabbitMqService>();
-builder.Services.AddScoped<IRabbitMQRepository , RabbitMQRepository>();
+builder.Services.AddScoped<IAzureBusProducerService , AzureBusProducerService>();
+builder.Services.AddScoped<IKafkaProducerService, KafkaProducerService>();
+builder.Services.AddScoped<IRabbitMQProducerService , RabbitMQProducerService>();
 builder.Services.AddScoped<IElasticSearchService, ElasticSearchService>();
-builder.Services.AddScoped<IAzureBusService , AzureBusService>();
-builder.Services.AddSingleton<IAzureBusServiceDatabase , AzureBusServiceDatabase>();
-builder.Services.AddSingleton<IKafkaServiceDatabase , KafkaServiceDatabase>();
-builder.Services.AddSingleton<IRabbitMQServiceDatabase, RabbitMQServiceDatabase>();
 builder.Services.AddScoped<IAzureFileUploadService , AzureFileUploadService>();
-builder.Services.AddSingleton<CustomDelegates.LoggingAzueBusServiceMessages>(provider =>
- {
-     var dbService = provider.GetRequiredService<IAzureBusServiceDatabase>();
-     return new CustomDelegates.LoggingAzueBusServiceMessages(dbService.LogConsumerData);
- });
-builder.Services.AddSingleton<CustomDelegates.LoggingKafkaServiceMessages>(provider =>
-{
-    var dbService = provider.GetRequiredService<IKafkaServiceDatabase>();
-    return new CustomDelegates.LoggingKafkaServiceMessages(dbService.LogConsumerData);
-});
-builder.Services.AddSingleton<CustomDelegates.LoggingRabbitMQServiceMessages>(provider =>
-{
-    var dbService = provider.GetRequiredService<IRabbitMQServiceDatabase>();
-    return new CustomDelegates.LoggingRabbitMQServiceMessages(dbService.LogConsumerData);
-});
+
 
 builder.Services.AddAutoMapper(typeof(MappingProfile));
 builder.Services.AddControllers();

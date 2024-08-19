@@ -16,9 +16,6 @@ namespace Task8.Repository
 
         public async Task AddMessagesAsync(List<Kafka> messages)
         {
-            //foreach (var message in messages)
-            //{
-            //}
             _context.Kafkas.AddRange(messages);
             await _context.SaveChangesAsync();
         }

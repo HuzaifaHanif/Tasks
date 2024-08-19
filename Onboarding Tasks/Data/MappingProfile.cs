@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
-using ServiceContracts;
-using Services;
+using ServiceContracts.KafkaService;
+using ServiceContracts.RabbitMQService;
 using Task8.Models.Employees;
 using Task8.Models.Kafka;
 using Task8.Models.RabbitMq;

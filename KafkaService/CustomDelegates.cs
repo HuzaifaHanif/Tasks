@@ -1,14 +1,15 @@
-﻿
-using ServiceContracts;
+﻿using ServiceContracts.AzureBusService;
+using ServiceContracts.KafkaService;
+using ServiceContracts.RabbitMQService;
 
 namespace Services
 {
     public static class CustomDelegates
     {
-        public delegate Task LoggingAzueBusServiceMessages(ConsumerAzureBus consumerObj , string connectionstring);
+        public delegate Task LoggingAzureBusServiceMessages(ConsumerAzureBus consumerObj);
 
-        public delegate Task LoggingKafkaServiceMessages(ConsumerKafka consumerObj, string connectionstring);
+        public delegate Task LoggingKafkaServiceMessages(ConsumerKafka consumerObj);
 
-        public delegate Task LoggingRabbitMQServiceMessages(ConsumerRabbitMq consumerObj, string connectionstring);
+        public delegate Task LoggingRabbitMQServiceMessages(ConsumerRabbitMq consumerObj);
     }
 }

@@ -4,7 +4,7 @@ using Confluent.Kafka;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using ServiceContracts;
-using Services;
+using ServiceContracts.KafkaService;
 using System.Net;
 using Task8.Models;
 using Task8.Models.Employees;
@@ -18,15 +18,13 @@ namespace Task8.Controllers
     [ApiController]
     public class KafkaController : Controller
     {
-        private readonly IKafkaService _kafkaService;
+        private readonly IKafkaProducerService _kafkaService;
         private readonly IMapper _mapper;
-        private readonly IKafkaRepository _context;
         private readonly APIResponse response;
-        public KafkaController(IKafkaService kafkaService , IMapper mapper , IKafkaRepository context) 
+        public KafkaController(IKafkaProducerService kafkaService , IMapper mapper) 
         {
             _kafkaService = kafkaService;
             _mapper = mapper;
-            _context = context;
             this.response = new APIResponse();
         }
 
@@ -51,15 +49,5 @@ namespace Task8.Controllers
 
         }
 
-        //[HttpGet("publisher/messages")]
-        //public async Task<IActionResult> GetMessages()
-        //{
-        //    response.Result =  await _context.GetAllMessagesAsync();
-        //    response.IsSuccess = true;
-        //    response.StatusCode = HttpStatusCode.OK;
-
-        //    return Ok(response);
-
-        //}
     }
 }

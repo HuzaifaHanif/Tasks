@@ -1,26 +1,29 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using ServiceContracts;
+﻿using AzureBusServiceConsumer2.Models;
+using Microsoft.Extensions.DependencyInjection;
+using ServiceContracts.AzureBusService;
 using Services;
+using Services.AzureBusService;
 
 public class Program
 {
-    private readonly IAzureBusService _azureBusService;
+    private readonly IAzureBusConsumerService _azureBusService;
+    private static AzureBusServiceContext _dbcontext;
 
-    public Program(IAzureBusService azureBusService)
+    public Program(IAzureBusConsumerService azureBusService, AzureBusServiceContext dbcontext)
     {
         _azureBusService = azureBusService;
+        _dbcontext = dbcontext;
     }
 
     public static async Task Main(string[] args)
     {
         var serviceProvider = new ServiceCollection()
-            .AddSingleton<IAzureBusService, AzureBusService>()
+            .AddSingleton<IAzureBusConsumerService, AzureBusConsumerService>()
+            .AddSingleton<AzureBusServiceContext>()
             .AddSingleton<Program>()
-            .AddSingleton<IAzureBusServiceDatabase, AzureBusServiceDatabase>()
-            .AddSingleton<CustomDelegates.LoggingAzueBusServiceMessages>(provider =>
+            .AddSingleton<CustomDelegates.LoggingAzureBusServiceMessages>(provider =>
             {
-                var dbService = provider.GetRequiredService<IAzureBusServiceDatabase>();
-                return new CustomDelegates.LoggingAzueBusServiceMessages(dbService.LogConsumerData);
+                return new CustomDelegates.LoggingAzureBusServiceMessages(AddMessageToDB);
             })
             .BuildServiceProvider();
 
@@ -39,5 +42,18 @@ public class Program
             "onboardingtask",
             "subscriber2"
         );
+    }
+
+    public static async Task AddMessageToDB(ConsumerAzureBus consumedMessage)
+    {
+        await _dbcontext.AzureBusService.AddAsync(new AzureBus
+        {
+            Guid = consumedMessage.Guid,
+            Topic = consumedMessage.Topic,
+            Message = consumedMessage.Message,
+            ConsumerName = consumedMessage.ConsumerName
+        });
+
+        await _dbcontext.SaveChangesAsync();
     }
 }

@@ -1,27 +1,31 @@
 ﻿
+using KafkaConsumer2.Models;
 using Microsoft.Extensions.DependencyInjection;
 using ServiceContracts;
+using ServiceContracts.KafkaService;
 using Services;
+using Services.KafkaService;
 
 public class Program
 {
-    private readonly IKafkaService _kafkaService;
+    private readonly IKafkaConsumerService _kafkaService;
+    private static KafkaServiceContext _dbContext;
 
-    public Program(IKafkaService kafkaService)
+    public Program(IKafkaConsumerService kafkaService, KafkaServiceContext dbContext)
     {
         _kafkaService = kafkaService;
+        _dbContext = dbContext;
     }
 
     public static async Task Main(string[] args)
     {
         var serviceProvider = new ServiceCollection()
-            .AddSingleton<IKafkaService, KafkaService>()
+            .AddSingleton<IKafkaConsumerService, KafkaConsumerService>()
+            .AddDbContext<KafkaServiceContext>()
             .AddSingleton<Program>()
-            .AddSingleton<IKafkaServiceDatabase, KafkaServiceDatabase>()
             .AddSingleton<CustomDelegates.LoggingKafkaServiceMessages>(provider =>
             {
-                var dbService = provider.GetRequiredService<IKafkaServiceDatabase>();
-                return new CustomDelegates.LoggingKafkaServiceMessages(dbService.LogConsumerData);
+                return new CustomDelegates.LoggingKafkaServiceMessages(AddMessageToDB);
             })
             .BuildServiceProvider();
 
@@ -43,5 +47,19 @@ public class Program
         string consumerName = config.GroupId;
 
         await _kafkaService.ConsumeMessages(config, topic, consumerName);
+    }
+
+    public static async Task AddMessageToDB(ConsumerKafka consumedMessage)
+    {
+        await _dbContext.Kafkas.AddAsync(new Kafka
+        {
+            Guid = consumedMessage.Id,
+            Topic = consumedMessage.Topic,
+            Message = consumedMessage.Message,
+            Partition = consumedMessage.Partition,
+            ConsumerName = consumedMessage.ConsumerName,
+        });
+
+        await _dbContext.SaveChangesAsync();
     }
 }
