@@ -36,8 +36,8 @@ public class Program
     public async Task MessagesHandler()
     {
         await _azureBusService.ConsumeMessages(
-            "Endpoint=sb://huzaifaservicebus.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=XawyVwykXqUjUI79C3RVFzzgc47imiqTa+ASbH+o4TA=",
-            "onboardingtask",
+            "connection string",
+            "Topic name",
             "subscriber1"
         );
 

@@ -20,7 +20,7 @@ public partial class RabbitMQServiceContext : DbContext
     public virtual DbSet<RabbitMq> RabbitMqs { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        => optionsBuilder.UseSqlServer("Data Source=VID-DT-1051;Initial Catalog=SoftechWorldWide;Integrated Security=True;Trust Server Certificate=True;Encrypt=True");
+        => optionsBuilder.UseSqlServer("connection string");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

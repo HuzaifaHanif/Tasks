@@ -24,7 +24,7 @@ namespace AzureBusServiceConsumer1.Models
         {
             if (!optionsBuilder.IsConfigured)
             {
-                optionsBuilder.UseSqlServer("Data Source=VID-DT-1051;Initial Catalog=SoftechWorldWide;Trust Server Certificate=True;Integrated Security=True");
+                optionsBuilder.UseSqlServer("connection string");
             }
         }
 

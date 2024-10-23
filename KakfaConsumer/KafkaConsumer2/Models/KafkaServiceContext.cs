@@ -24,7 +24,7 @@ namespace KafkaConsumer2.Models
         {
             if (!optionsBuilder.IsConfigured)
             {
-                optionsBuilder.UseSqlServer("Data Source=VID-DT-1051;Initial Catalog=SoftechWorldWide;Integrated Security=True;Trust Server Certificate=True;Encrypt=True");
+                optionsBuilder.UseSqlServer("connection string");
             }
         }
 
